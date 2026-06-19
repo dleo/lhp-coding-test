@@ -19,16 +19,17 @@ class EventController extends Controller
 
     public function index(Request $request): Response
     {
-        return Inertia::render('Events/Index', [
-            'filters' => [
-                'status' => $request->status,
-                'from' => $request->input('from', '2023-01-01'),
-                'to' => $request->input('to', ''),
-                'city' => $request->input('city', ''),
-            ],
-            'statuses' => ['draft', 'published', 'cancelled', 'sold_out'],
-            'cities' => LocationResolver::cities(),
-        ]);
+        return Inertia::render('Events/Index', $this->listingScaffold($request));
+    }
+
+    public function visualOne(Request $request): Response
+    {
+        return Inertia::render('Events/VisualOne', $this->listingScaffold($request));
+    }
+
+    public function visualTwo(Request $request): Response
+    {
+        return Inertia::render('Events/VisualTwo', $this->listingScaffold($request));
     }
 
     public function data(Request $request): JsonResponse
@@ -88,6 +89,23 @@ class EventController extends Controller
         ];
 
         return response()->json(array_merge($payload, ['stats' => $stats]));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function listingScaffold(Request $request): array
+    {
+        return [
+            'filters' => [
+                'status' => $request->status,
+                'from' => $request->input('from', '2023-01-01'),
+                'to' => $request->input('to', ''),
+                'city' => $request->input('city', ''),
+            ],
+            'statuses' => ['draft', 'published', 'cancelled', 'sold_out'],
+            'cities' => LocationResolver::cities(),
+        ];
     }
 
     /**
