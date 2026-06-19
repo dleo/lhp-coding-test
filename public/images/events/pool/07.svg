@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <rect width="800" height="450" fill="#14B8A6"/>
+  <text
+    x="400" y="200"
+    font-family="system-ui, sans-serif"
+    font-size="120"
+    font-weight="bold"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    fill="#FFFFFF"
+    opacity="0.9"
+  >07</text>
+  <text
+    x="400" y="330"
+    font-family="system-ui, sans-serif"
+    font-size="36"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    fill="#FFFFFF"
+    opacity="0.7"
+  >Event Placeholder</text>
+</svg>
