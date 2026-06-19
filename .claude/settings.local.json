@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write",
+      "Bash(docker exec:*)",
+      "Bash(node:*)",
+      "Bash(bun:*)",
+      "Bash(npx:*)",
+      "Bash(npm:*)",
+      "Bash(source:*)",
+      "Bash(NODE_OPTIONS=:*)"
+    ]
+  }
+}

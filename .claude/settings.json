@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(npm run *)",
+      "Bash(composer *)",
+      "Bash(./vendor/bin/pint *)",
+      "Bash(docker compose *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(grep *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(php artisan migrate --force)"
+    ]
+  }
+}
