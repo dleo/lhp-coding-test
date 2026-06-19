@@ -7,6 +7,7 @@ Route::redirect('/', '/events')->name('home');
 
 Route::get('events', [EventController::class, 'index'])->name('events.index');
 Route::get('events/data', [EventController::class, 'data'])->name('events.data');
+Route::get('events/calendar', [EventController::class, 'calendar'])->name('events.calendar');
 Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
 
 Route::inertia('events-visual-1', 'Events/VisualOne')->name('events.visual1');

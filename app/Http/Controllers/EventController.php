@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Support\LocationResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -52,6 +53,43 @@ class EventController extends Controller
         ]);
     }
 
+    public function calendar(Request $request): JsonResponse
+    {
+        $start = microtime(true);
+
+        $monthParam = $request->input('month', '');
+        $month = (is_string($monthParam) && preg_match('/^\d{4}-\d{2}$/', $monthParam))
+            ? $monthParam
+            : date('Y-m');
+
+        $monthStart = (int) strtotime($month.'-01 00:00:00 UTC');
+        $monthEnd = (int) strtotime('+1 month', $monthStart) - 1;
+
+        $dayExpr = $this->dayExpression();
+
+        /** @var array<string, int> $rows */
+        $rows = $this->applyFilters(Event::query(), $request)
+            ->where('created_time', '>=', $monthStart)
+            ->where('created_time', '<=', $monthEnd)
+            ->selectRaw("{$dayExpr} as day, count(*) as cnt")
+            ->groupByRaw($dayExpr)
+            ->pluck('cnt', 'day')
+            ->all();
+
+        /** @var array<string, int> $counts */
+        $counts = array_map('intval', $rows);
+
+        $payload = ['month' => $month, 'counts' => $counts];
+        $encoded = (string) json_encode($payload);
+
+        $stats = [
+            'ms' => (int) round((microtime(true) - $start) * 1000),
+            'bytes' => strlen($encoded),
+        ];
+
+        return response()->json(array_merge($payload, ['stats' => $stats]));
+    }
+
     /**
      * @return array{0: LengthAwarePaginator, 1: array{ms: int, bytes: int}}
      */
@@ -61,10 +99,8 @@ class EventController extends Controller
 
         $from = $request->input('from');
         $to = $request->input('to');
-        $cityIndex = $request->input('city');
 
-        $events = Event::with('user')
-            ->when($request->status, fn ($q, $s) => $q->where('status', $s))
+        $events = $this->applyFilters(Event::with('user'), $request)
             ->when(
                 $from !== null && $from !== '',
                 fn ($q) => $q->where('created_time', '>=', strtotime((string) $from))
@@ -73,6 +109,46 @@ class EventController extends Controller
                 $to !== null && $to !== '',
                 fn ($q) => $q->where('created_time', '<=', strtotime((string) $to))
             )
+            ->orderByDesc('created_time')
+            ->paginate(50)
+            ->withQueryString();
+
+        $stats = [
+            'ms' => (int) round((microtime(true) - $start) * 1000),
+            'bytes' => strlen((string) json_encode($events->items())),
+        ];
+
+        return [$events, $stats];
+    }
+
+    /**
+     * Return a driver-portable SQL expression that converts a unix-timestamp
+     * column `created_time` to a YYYY-MM-DD date string.
+     *
+     * No user input is interpolated — the expression is a constant per driver.
+     *
+     * @return literal-string
+     */
+    private function dayExpression(): string
+    {
+        return match ((new Event)->getConnection()->getDriverName()) {
+            'mysql', 'mariadb' => 'date(from_unixtime(created_time))',
+            default => "date(created_time, 'unixepoch')",
+        };
+    }
+
+    /**
+     * Apply shared status + city-bbox filters (no date range — each caller owns that).
+     *
+     * @param  Builder<Event>  $query
+     * @return Builder<Event>
+     */
+    private function applyFilters(Builder $query, Request $request): Builder
+    {
+        $cityIndex = $request->input('city');
+
+        return $query
+            ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when(
                 $cityIndex !== null && $cityIndex !== '',
                 function ($q) use ($cityIndex) {
@@ -89,16 +165,6 @@ class EventController extends Controller
                     return $q->whereBetween('latitude', [$anchor['lat'] - $box, $anchor['lat'] + $box])
                         ->whereBetween('longitude', [$anchor['lng'] - $box, $anchor['lng'] + $box]);
                 }
-            )
-            ->orderByDesc('created_time')
-            ->paginate(50)
-            ->withQueryString();
-
-        $stats = [
-            'ms' => (int) round((microtime(true) - $start) * 1000),
-            'bytes' => strlen((string) json_encode($events->items())),
-        ];
-
-        return [$events, $stats];
+            );
     }
 }
